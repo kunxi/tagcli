@@ -8,22 +8,72 @@ from docopt import docopt
 __version__ = "0.1.0"
 
 class Runner(object):
-    @staticmethod
-    def rename(*args):
+    @classmethod
+    def rename(cls, argv, options):
         """
-        usage: tag rename [--dry-run] <pattern> <files>...
+usage: tag rename [--dry-run] <pattern> <files>...
+
+Rename <files> with the <pattern> formated by the audio meta file.
+
+options:
+   --dry-run      Print the action the command will take without actually changing any files.
+
+examples:
+    tag rename '{discnumber}-{tracknumber} {artist} - {album} - {title}' foo.mp3 bar.m4a
+
+    See 'tag help tags' for supported tags.
 
         """
-        pass
+        args = docopt(cls.rename.__doc__, argv=argv)
+
+    @classmethod
+    def tags(cls):
+        """
+The foobar 2000 convention is adopted for the tag name. You are free to use container-specific
+tag name or the generic tag name as specified below for the sake of portability:
+
+    +-------------+-----------------------+------+
+    | Tag Name    | ID3v2                 | AAC  |
+    |-------------+-----------------------+------+
+    | artist      | TPE1                  | ©art |
+    |-------------+-----------------------+------+
+    | album       | TALB                  | ©alb |
+    |-------------+-----------------------+------+
+    | title       | TIT2                  | ©nam |
+    |-------------+-----------------------+------+
+    | discnumber  | TPOS                  | disk |
+    |-------------+-----------------------+------+
+    | tracknumber | TRCK                  | trkn |
+    |-------------+-----------------------+------+
+    | genre       | TCON                  | gnre |
+    |-------------+-----------------------+------|
+    | date        | TYER(v2.3) TDRC(v2.4) | ©day |
+    +-------------+-----------------------+------+
+
+    data source:
+        [mp4v2 wiki]: https://code.google.com/p/mp4v2/wiki/iTunesMetadata
+        [Foobar2000:ID3 Tag Mapping]: http://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
+        """
+        raise NotImplemented
+
+    @classmethod
+    def help(cls, argv, args):
+        if args['<args>']:
+            cmd = args['<args>'][-1]
+            try:
+                print(getattr(Runner, cmd).__doc__)
+            except AttributeError:
+                exit("%r is not a tag command. See 'tag help'." % cmd)
+        else:
+            print(docopt(main.__doc__, argv='-h'))
 
 def main():
     """
-usage: tag [--version] [--help] [--dry-run]
+usage: tag [--version] [--help]
            <command> [<args>...]
 
 options:
    -h, --help     Print this help
-   --dry-run      Print the action the command will take without actually changing any files.
 
 The most commonly used commands are:
    rename         Rename the audio file with meta data
@@ -38,16 +88,10 @@ See 'tag help <command>' for more information on a specific command.
 
     cmd = args['<command>']
     try:
-        if cmd == 'help':
-            if args['<args>']:
-                cmd = args['<args>'][-1]
-                method = docopt(getattr(Runner, cmd).__doc__)
-            else:
-                print(docopt(main.__doc__, argv='-h'))
-
         method = getattr(Runner, cmd)
         assert callable(method)
-        return method(args)
+        argv = [args['<command>']] + args['<args>']
+        return method(argv, args)
     except (AttributeError, AssertionError):
         exit("%r is not a tag command. See 'tag help'." % cmd)
 
