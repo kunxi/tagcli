@@ -7,6 +7,7 @@ import pkg_resources
 
 from functools import wraps
 from mutagen.mp4 import MP4
+from mutagen.id3 import ID3
 from docopt import docopt
 
 
@@ -30,11 +31,21 @@ def add_generic_tags(metadata, format):
             metadata['tracknumber'] = metadata['trkn'][0][0]
         discnumber = metadata.get('disk')
         metadata['discnumber'] = discnumber[0][0] if discnumber else '1'
+    elif format == ID3:
+        for key, value in [
+            ('artist', 'TPE1'),
+            ('album', 'TALB'),
+            ('title', 'TIT2'),
+            ('genre', 'TPOS'),
+            ('date', 'TRCK')]:
+            if value in metadata:
+                metadata[key] = metadata[value][0]
 
 def meta_gen(files):
     """Yield (metadaa, filename) tuple for each file."""
     formats = {
-        'm4a': MP4
+        'm4a': MP4,
+        'mp3': ID3
     }
     for f in files:
         _, ext = os.path.splitext(f)
