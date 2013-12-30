@@ -30,7 +30,8 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        'docopt'
+        'docopt',
+        'mutagen'
     ],
     entry_points="""
     [console_scripts]
