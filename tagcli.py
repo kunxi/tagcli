@@ -3,60 +3,49 @@
 
 import os.path
 import shutil
-import pkg_resources
 
 from functools import wraps
-from mutagen.mp4 import MP4
-from mutagen.id3 import ID3
+from mutagen.easymp4 import EasyMP4
+from mutagen.easyid3 import EasyID3
 from docopt import docopt
 
 
-#__version__ = pkg_resources.require("tagcli")[0].version
 __version__ = "0.1.0"
-__all__ = ['dump', 'rename', 'help']
 
+# the following text keys are registered for the sake of compatibility.
+for frameid, key in ({
+    "TPE2": "albumartist"
+}.items()):
+    EasyID3.RegisterTextKey(key, frameid)
 
-def add_generic_tags(metadata, format):
-    if format == MP4:
-        for key, value in [
-            ('artist', '\xa9ART'),
-            ('album', '\xa9alb'),
-            ('title', '\xa9nam'),
-            ('genre', 'gnre'),
-            ('date', '\xa9day')]:
-            if value in metadata:
-                metadata[key] = metadata[value][0]
+class SimpleDict(object):
+    '''A compatible wrapper for EasyID3 and EasyMP4.'''
+    def __init__(self, meta):
+        self.meta = meta
 
-        if 'trkn' in metadata:
-            metadata['tracknumber'] = metadata['trkn'][0][0]
-        discnumber = metadata.get('disk')
-        metadata['discnumber'] = discnumber[0][0] if discnumber else '1'
-    elif format == ID3:
-        for key, value in [
-            ('artist', 'TPE1'),
-            ('album', 'TALB'),
-            ('title', 'TIT2'),
-            ('genre', 'TPOS'),
-            ('date', 'TRCK')]:
-            if value in metadata:
-                metadata[key] = metadata[value][0]
+    def __getattr__(self, name):
+        # delegate everything to the self.meta under the hood
+        return getattr(self.meta, name)
 
-def meta_gen(files):
-    """Yield (metadaa, filename) tuple for each file."""
-    formats = {
-        'm4a': MP4,
-        'mp3': ID3
-    }
-    for f in files:
-        _, ext = os.path.splitext(f)
-        if ext:
-            ext = ext[1:]
-        format = formats.get(ext.lower())
-        if format:
-            metadata = format(f)
-            # update the metadata with generic field name
-            add_generic_tags(metadata, format)
-            yield metadata, f
+    def __getitem__(self, name):
+        # special care for the tracknumber and discnumber
+        # both of them are rendered as index/total pair.
+        if name in self.meta:
+            if name in ('tracknumber','discnumber'):
+                return int(self.meta[name][0].split('/')[0])
+            return self.meta[name][0]
+        else:
+            return None
+
+def load(filename):
+    """Return a tagging instance."""
+    _, ext = os.path.splitext(filename)
+    if ext == '.m4a':
+        return EasyMP4(filename)
+    elif ext == '.mp3':
+        return EasyID3(filename)
+    else:
+        raise NotImplementedError('Unknown extension: %s' % ext)
 
 def argparsed(func):
     @wraps(func)
@@ -65,6 +54,7 @@ def argparsed(func):
         return func(args)
     return wrapped
 
+
 @argparsed
 def dump(args):
     """
@@ -72,9 +62,13 @@ usage: tag dump <files>...
 
 Dump audio meta data of the <files>.
     """
-    for m, f in meta_gen(args['<files>']):
-        print(f)
-        print(m.pprint())
+    for f in args['<files>']:
+        try:
+            meta = load(f)
+            print(f)
+            print(meta.pprint())
+        except NotImplemented as exc:
+            print('Skipping %s: %s' % (f, exc.message))
 
 @argparsed
 def rename(args):
@@ -87,20 +81,83 @@ Options:
     <pattern>           The file name pattern using python string format syntax.
                         See 'tag help tags' for supported tags.
     -p, --dry-run       Print the action the command will take without actually changing any files.
+    --verbose           Output extra information about the work being done.
 
 Examples:
 
-tag rename '{discnumber}-{tracknumber:02} {artist} - {album} - {title}' foo.mp3 bar.m4a
+    tag rename '{discnumber}-{tracknumber:02} {artist} - {album} - {title}' foo.mp3 bar.m4a
 
     """
     pattern = args['<pattern>']
-    for m, f in meta_gen(args['<files>']):
+    for f in args['<files>']:
+        try:
+            meta = SimpleDict(load(f))
+        except NotImplemented as exc:
+            if args['--verbose']:
+                print('Skipping %s: %s' % (f, exc.message))
+
         _, ext = os.path.splitext(f)
-        filename = unicode(pattern).format(**m) + ext
+        filename = unicode(pattern).format(**meta) + ext
         print("'%s'  ==>  '%s'" % (f, filename.encode('utf-8')))
         if not args['--dry-run']:
             fullname = os.path.join(os.path.dirname(f), filename)
             shutil.move(f, fullname)
+
+@argparsed
+def update(args):
+    """
+usage: tag update [options] [(--tracknumber=<tracknumber> | --trackstart=<trackstart>)] <files>...
+
+Update audio metadata of <files> with specified tags.
+
+Options:
+    --artist=<artist>
+    --albumartist=<album-artist>
+    --album=<album>
+    --title=<title>
+    --discnumber=<discnumber>
+    --tracknumber=<tracknumber>
+    --trackstart=<trackstart>)
+                        If --trackstart is set, the tracknumber is populated
+                        automatically
+
+    -p, --dry-run       Print the action the command will take without actually
+                        changing any files.
+
+Examples:
+
+    1. update the compiled album
+    tag update --artist='张靓颖‘ --album-artist='Various Artists' foo.mp3 bar.mp3
+
+    2. update the album track number with sorted order
+    tag update --albme='Billboard 2013‘ --album-artist='Various Artists' --trackstart=50 \
+        50.mp3 51.mp3
+
+    """
+    def iter(args):
+        for k, v in args.items():
+            if k in ('--dry-run', '--trackstart'):
+                continue
+            if v is not None and k.startswith('--'):
+                yield (k[2:], v.decode('utf-8'))
+
+    options = dict(iter(args))
+    for index, f in enumerate(args['<files>'], int(args.get('--trackstart') or 1)):
+        if args.get('--trackstart'):
+            options.update(tracknumber=str(index))
+        try:
+            meta = load(f)
+        except NotImplemented as exc:
+            if args['--verbose']:
+                print('Skipping %s: %s' % (f, exc.message))
+
+        if args['--dry-run']:
+            print "Update tags for %s:" % f
+            print "\n".join("%s: %s" % (k, v) for k, v in options.items())
+        else:
+            meta.update(options)
+            meta.save(f)
+
 
 def help(argv):
     if len(argv) > 1:
@@ -114,26 +171,25 @@ def help(argv):
 
 def tags():
     """
-The foobar 2000 convention is adopted for the tag name. You are free to use container-specific
-tag name or the generic tag name as specified below for the sake of portability:
+The tag uses the same tag naming convention as EasyID3 in the mutagen library.
+Here are the most commonly used tag names:
 
-    +-------------+-----------------------+------+
-    | Tag Name    | ID3v2                 | AAC  |
-    |-------------+-----------------------+------+
-    | artist      | TPE1                  | ©ART |
-    |-------------+-----------------------+------+
-    | album       | TALB                  | ©alb |
-    |-------------+-----------------------+------+
-    | title       | TIT2                  | ©nam |
-    |-------------+-----------------------+------+
-    | discnumber  | TPOS                  | disk |
-    |-------------+-----------------------+------+
-    | tracknumber | TRCK                  | trkn |
-    +-------------+-----------------------+------+
+    +==============+=======+======+
+    | Tag Name     | ID3v2 | AAC  |
+    |==============+=======+======|
+    | artist       | TPE1  | ©ART |
+    |--------------+-------+------|
+    | albumartist  | TPE2  | aART |
+    |--------------+-------+------|
+    | album        | TALB  | ©alb |
+    |--------------+-------+------|
+    | title        | TIT2  | ©nam |
+    |--------------+-------+------|
+    | discnumber   | TPOS  | disk |
+    |--------------+-------+------|
+    | tracknumber  | TRCK  | trkn |
+    +--------------+-------+------+
 
-    data source:
-        [mp4v2 wiki]: https://code.google.com/p/mp4v2/wiki/iTunesMetadata
-        [Foobar2000:ID3 Tag Mapping]: http://wiki.hydrogenaudio.org/index.php?title=Foobar2000:ID3_Tag_Mapping
     """
     raise NotImplemented
 
