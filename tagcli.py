@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 import os.path
 import shutil
 
@@ -10,7 +11,7 @@ from mutagen.easyid3 import EasyID3
 from docopt import docopt
 
 
-__version__ = "0.1.0"
+version = (0, 2, 0)
 
 # the following text keys are registered for the sake of compatibility.
 for frameid, key in ({
@@ -152,8 +153,8 @@ Examples:
                 print('Skipping %s: %s' % (f, exc.message))
 
         if args['--dry-run']:
-            print "Update tags for %s:" % f
-            print "\n".join("%s: %s" % (k, v) for k, v in options.items())
+            print("Update tags for %s:" % f)
+            print("\n".join("%s: %s" % (k, v) for k, v in options.items()))
         else:
             meta.update(options)
             meta.save(f)

@@ -19,7 +19,7 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 setup(
     name='tagcli',
-    version='0.1.0',
+    version='0.2.0',
     description='A command line tool to manage audio metadata.',
     long_description=readme + '\n\n' + history,
     author='Kun Xi',
@@ -33,6 +33,7 @@ setup(
         'docopt',
         'mutagen'
     ],
+    test_require='pytest',
     entry_points="""
     [console_scripts]
     tag= tagcli:main
