@@ -20,6 +20,7 @@ for frameid, key in ({
 }.items()):
     EasyID3.RegisterTextKey(key, frameid)
 
+
 class SimpleDict(object):
     '''A compatible wrapper for EasyID3 and EasyMP4.'''
     def __init__(self, meta):
@@ -33,12 +34,13 @@ class SimpleDict(object):
         # special care for the tracknumber and discnumber
         # both of them are rendered as index/total pair.
         if name in self.meta:
-            if name in ('tracknumber','discnumber'):
+            if name in ('tracknumber', 'discnumber'):
                 return int(self.meta[name][0].split('/')[0])
             return self.meta[name][0]
         else:
             # FUTURE: extend the tag support, for example: tracktotal
             raise KeyError(name)
+
 
 def load(filename):
     """Return a tagging instance."""
@@ -49,6 +51,7 @@ def load(filename):
         return EasyID3(filename)
     else:
         raise NotImplementedError('unknown extension: %s' % ext)
+
 
 def argparsed(func):
     @wraps(func)
@@ -73,6 +76,7 @@ Dump audio meta data of the <files>.
         except NotImplementedError as exc:
             print('Skipping %s: %s' % (f, exc.message))
 
+
 @argparsed
 def rename(args):
     """
@@ -81,14 +85,15 @@ usage: tag rename [options] <pattern> <files>...
 Rename <files> with the naming <pattern> formated by the audio meta file.
 
 Options:
-    <pattern>           The file name pattern using python string format syntax.
-                        See 'tag help tags' for supported tags.
-    -p, --dry-run       Print the action the command will take without actually changing any files.
+    <pattern>           The file name pattern using python string format
+                        syntax. See 'tag help tags' for supported tags.
+    -p, --dry-run       Print the action the command will take without
+                        actually changing any files.
     --verbose           Output extra information about the work being done.
 
 Examples:
 
-    tag rename '{discnumber}-{tracknumber:02} {artist} - {album} - {title}' foo.mp3 bar.m4a
+    tag rename '{discnumber}-{tracknumber:02}.{album} - {title}' foo.mp3
 
     """
     pattern = args['<pattern>']
@@ -107,10 +112,13 @@ Examples:
             fullname = os.path.join(os.path.dirname(f), filename)
             shutil.move(f, fullname)
 
+
 @argparsed
 def update(args):
     """
-usage: tag update [options] [(--tracknumber=<tracknumber> | --trackstart=<trackstart>)] <files>...
+usage:
+    tag update [--tracknumber=<tracknumber>] [options] <files>...
+    tag update [--trackstart=<trackstart>] [options] <files>...
 
 Update audio metadata of <files> with specified tags.
 
@@ -121,22 +129,20 @@ Options:
     --title=<title>
     --discnumber=<discnumber>
     --tracknumber=<tracknumber>
-    --trackstart=<trackstart>)
-                        If --trackstart is set, the tracknumber is populated
-                        automatically
+    --trackstart=<trackstart>
+                        If set, the tracknumber is populated automatically
 
-    -p, --dry-run       Print the action the command will take without actually
-                        changing any files.
+    -p, --dry-run       Print the action the command will take without
+                        actually changing any files.
     --verbose           Output extra information about the work being done.
 
 Examples:
 
     1. update the compiled album
-    tag update --artist='张靓颖‘ --album-artist='Various Artists' foo.mp3 bar.mp3
+    tag update --artist='张靓颖‘ --album-artist='Various Artists' foo.mp3
 
     2. update the album track number with sorted order
-    tag update --albme='Billboard 2013‘ --album-artist='Various Artists' --trackstart=50 \
-        50.mp3 51.mp3
+    tag update --albumartist='Various Artists' --trackstart=50 50.mp3 51.mp3
 
     """
     def iter(args):
@@ -147,7 +153,8 @@ Examples:
                 yield (k[2:], v.decode('utf-8'))
 
     options = dict(iter(args))
-    for index, f in enumerate(args['<files>'], int(args.get('--trackstart') or 1)):
+    for index, f in enumerate(args['<files>'],
+                              int(args.get('--trackstart') or 1)):
         try:
             meta = load(f)
         except NotImplementedError as exc:
@@ -175,6 +182,7 @@ def help(argv):
             exit("%r is not a tag command. See 'tag help'." % cmd)
     else:
         docopt(main.__doc__, argv='-h')
+
 
 def tags():
     """

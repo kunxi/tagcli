@@ -33,7 +33,7 @@ setup(
         'docopt',
         'mutagen'
     ],
-    test_require='pytest',
+    test_require=['pytest'],
     entry_points="""
     [console_scripts]
     tag= tagcli:main

@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from StringIO import StringIO
 from tempfile import mkstemp
 
+
 @contextmanager
 def redirected_io():
     stdout = sys.stdout
@@ -17,6 +18,7 @@ def redirected_io():
     yield tmpfile
     tmpfile.close()
     sys.stdout = stdout
+
 
 class TestCase(unittest.TestCase):
     def setUp(self):
