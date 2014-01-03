@@ -25,4 +25,7 @@ class TestCase(unittest.TestCase):
         shutil.copy(self.original, self.filename)
 
     def tearDown(self):
-        os.unlink(self.filename)
+        try:
+            os.unlink(self.filename)
+        except OSError:
+            pass

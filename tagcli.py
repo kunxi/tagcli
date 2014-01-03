@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+import sys
 import os.path
 import shutil
 
@@ -11,7 +12,7 @@ from mutagen.easyid3 import EasyID3
 from docopt import docopt
 
 
-version = (0, 2, 0)
+__version__ = '0.2.0'
 
 # the following text keys are registered for the sake of compatibility.
 for frameid, key in ({
@@ -36,7 +37,8 @@ class SimpleDict(object):
                 return int(self.meta[name][0].split('/')[0])
             return self.meta[name][0]
         else:
-            return None
+            # FUTURE: extend the tag support, for example: tracktotal
+            raise KeyError(name)
 
 def load(filename):
     """Return a tagging instance."""
@@ -46,7 +48,7 @@ def load(filename):
     elif ext == '.mp3':
         return EasyID3(filename)
     else:
-        raise NotImplementedError('Unknown extension: %s' % ext)
+        raise NotImplementedError('unknown extension: %s' % ext)
 
 def argparsed(func):
     @wraps(func)
@@ -68,7 +70,7 @@ Dump audio meta data of the <files>.
             meta = load(f)
             print(f)
             print(meta.pprint())
-        except NotImplemented as exc:
+        except NotImplementedError as exc:
             print('Skipping %s: %s' % (f, exc.message))
 
 @argparsed
@@ -93,9 +95,10 @@ Examples:
     for f in args['<files>']:
         try:
             meta = SimpleDict(load(f))
-        except NotImplemented as exc:
+        except NotImplementedError as exc:
             if args['--verbose']:
                 print('Skipping %s: %s' % (f, exc.message))
+            continue
 
         _, ext = os.path.splitext(f)
         filename = unicode(pattern).format(**meta) + ext
@@ -124,6 +127,7 @@ Options:
 
     -p, --dry-run       Print the action the command will take without actually
                         changing any files.
+    --verbose           Output extra information about the work being done.
 
 Examples:
 
@@ -137,20 +141,22 @@ Examples:
     """
     def iter(args):
         for k, v in args.items():
-            if k in ('--dry-run', '--trackstart'):
+            if k in ('--dry-run', '--trackstart', '--verbose'):
                 continue
             if v is not None and k.startswith('--'):
                 yield (k[2:], v.decode('utf-8'))
 
     options = dict(iter(args))
     for index, f in enumerate(args['<files>'], int(args.get('--trackstart') or 1)):
-        if args.get('--trackstart'):
-            options.update(tracknumber=str(index))
         try:
             meta = load(f)
-        except NotImplemented as exc:
+        except NotImplementedError as exc:
             if args['--verbose']:
                 print('Skipping %s: %s' % (f, exc.message))
+            continue
+
+        if args.get('--trackstart'):
+            options.update(tracknumber=str(index))
 
         if args['--dry-run']:
             print("Update tags for %s:" % f)
@@ -168,7 +174,7 @@ def help(argv):
         except KeyError:
             exit("%r is not a tag command. See 'tag help'." % cmd)
     else:
-        print(docopt(main.__doc__, argv='-h'))
+        docopt(main.__doc__, argv='-h')
 
 def tags():
     """
@@ -192,10 +198,10 @@ Here are the most commonly used tag names:
     +--------------+-------+------+
 
     """
-    raise NotImplemented
+    raise NotImplementedError
 
 
-def main():
+def main(argv=None):
     """
 usage: tag [--version] [--help]
            <command> [<args>...]
@@ -217,7 +223,8 @@ See 'tag help <command>' for more information on a specific command.
     """
     args = docopt(main.__doc__,
                   version='tag version %s' % __version__,
-                  options_first=True)
+                  options_first=True,
+                  argv=argv or sys.argv[1:])
 
     cmd = args['<command>']
     try:
