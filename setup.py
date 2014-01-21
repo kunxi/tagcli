@@ -14,14 +14,10 @@ if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
 
-readme = open('README.rst').read()
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
-
 setup(
     name='tagcli',
     version='0.2.0',
-    description='A command line tool to manage audio metadata.',
-    long_description=readme + '\n\n' + history,
+    description='A mutagen-based tag editor.',
     author='Kun Xi',
     author_email='kunxi@kunxi.org',
     url='https://github.com/kunxi/tagcli',

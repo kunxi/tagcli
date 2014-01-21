@@ -192,14 +192,14 @@ def test_help():
     with redirected_io() as stdout:
         with pytest.raises(SystemExit):
             main(['help'])
-        assert '\n%s' % stdout.getvalue() == '%s\n' % main.__doc__
+        assert stdout.getvalue() == '%s\n' % main.__doc__
 
 
 def test_main():
     with pytest.raises(SystemExit) as excinfo:
         main()
-    assert excinfo.exconly() == """DocoptExit: usage: tag [--version] [--help]
-           <command> [<args>...]"""
+    assert excinfo.exconly() == """DocoptExit: Usage:
+  tag <command> [<options>...]"""
 
 
 def test_missing_command():

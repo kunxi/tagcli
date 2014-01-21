@@ -82,18 +82,18 @@ def rename(args):
     """
 usage: tag rename [options] <pattern> <files>...
 
-Rename <files> with the naming <pattern> formated by the audio meta file.
+Rename <files> with the naming <pattern> formated by the tags.
 
 Options:
-    <pattern>           The file name pattern using python string format
-                        syntax. See 'tag help tags' for supported tags.
-    -p, --dry-run       Print the action the command will take without
-                        actually changing any files.
-    --verbose           Output extra information about the work being done.
+  <pattern>           The file name pattern using python string format
+                      syntax. See 'tag help tags' for supported tags.
+  -p, --dry-run       Print the action the command will take without
+                      actually changing any files.
+  --verbose           Output extra information about the work being done.
 
 Examples:
 
-    tag rename '{discnumber}-{tracknumber:02}.{album} - {title}' foo.mp3
+  tag rename '{discnumber}-{tracknumber:02}.{album} - {title}' foo.mp3
 
     """
     pattern = args['<pattern>']
@@ -117,32 +117,36 @@ Examples:
 def update(args):
     """
 usage:
-    tag update [--tracknumber=<tracknumber>] [options] <files>...
-    tag update [--trackstart=<trackstart>] [options] <files>...
+  tag update [--tracknumber=<tracknumber>] [options] <files>...
+  tag update [--trackstart=<trackstart>] [options] <files>...
 
-Update audio metadata of <files> with specified tags.
+Update the <files> with the specified tags.
 
 Options:
-    --artist=<artist>
-    --albumartist=<album-artist>
-    --album=<album>
-    --title=<title>
-    --discnumber=<discnumber>
-    --tracknumber=<tracknumber>
-    --trackstart=<trackstart>
-                        If set, the tracknumber is populated automatically
+  --artist=<artist>   Set the artist tag metadata.
+  --album=<album>     Set the album tag metadata.
 
-    -p, --dry-run       Print the action the command will take without
-                        actually changing any files.
-    --verbose           Output extra information about the work being done.
+  --title=<title>     Set the title tag metadata.
+  --albumartist=<album-artist>
+                      Set the album artist tag metadata.
+  --discnumber=<discnumber>
+                      Set the disc number tag metadata.
+  --tracknumber=<tracknumber>
+                      Set the track number tag metadata.
+  --trackstart=<trackstart>
+                      If set, the tracknumber is incremented in ascending order.
+
+  -p, --dry-run       Print the action the command will take without
+                      actually changing any files.
+  --verbose           Output extra information about the work being done.
 
 Examples:
 
-    1. update the compiled album
-    tag update --artist='张靓颖‘ --album-artist='Various Artists' foo.mp3
+  1. update the compiled album
+  tag update --artist='张靓颖‘ --album-artist='Various Artists' foo.mp3
 
-    2. update the album track number with sorted order
-    tag update --albumartist='Various Artists' --trackstart=50 50.mp3 51.mp3
+  2. update the album track number with sorted order
+  tag update --albumartist='Various Artists' --trackstart=50 50.mp3 51.mp3
 
     """
     def iter(args):
@@ -210,25 +214,23 @@ Here are the most commonly used tag names:
 
 
 def main(argv=None):
-    """
-usage: tag [--version] [--help]
-           <command> [<args>...]
+    """A mutagen-based tag editor.
 
-Mutagen-based tag command line utilities.
+Usage:
+  tag <command> [<options>...]
 
-options:
-   -h, --help     Print this help
 
-commands:
-   rename         Rename the audio file with meta data
-   update         Update the audio meta data
-   dump           Dumps the audio meta data
+General Options:
+  -h, --help    Show help.
+  --version     Show version and exit.
 
-concepts:
-    tags          The generic tag names across containers
+Commands:
+ rename         Rename file using pattern with tags.
+ update         Update the tags.
+ dump           Dumps the tags.
+ tags           Show generic tag names.
 
-See 'tag help <command>' for more information on a specific command.
-    """
+See 'tag help <command>' for more information on a specific command."""
     args = docopt(main.__doc__,
                   version='tag version %s' % __version__,
                   options_first=True,
@@ -241,7 +243,7 @@ See 'tag help <command>' for more information on a specific command.
     except (KeyError, AssertionError):
         exit("%r is not a tag command. See 'tag help'." % cmd)
 
-    argv = [args['<command>']] + args['<args>']
+    argv = [args['<command>']] + args['<options>']
     return method(argv)
 
 if __name__ == "__main__":

@@ -2,22 +2,19 @@
 tagcli
 ===============================
 
-.. image:: https://badge.fury.io/py/tagcli.png
-    :target: http://badge.fury.io/py/tagcli
-    
-.. image:: https://travis-ci.org/kunxi/tagcli.png?branch=master
-        :target: https://travis-ci.org/kunxi/tagcli
 
-.. image:: https://pypip.in/d/tagcli/badge.png
-        :target: https://crate.io/packages/tagcli?version=latest
+A mutagen-based tag editor.
 
+You may use it to rename audio file with pattern
 
-A command line tool to manage audio metadata.
+::
 
-* Free software: BSD license
-* Documentation: http://tagcli.rtfd.org.
+    $ tag renmae '{tracknumber:02} - {title}' *.m4a
+    foo.m4a ==> 01 - Some Song.m4a
+    [...]
 
-Features
---------
+or update tags
 
-* TODO
+::
+
+    $ tag update --album='Top 100 hits' *.mp3
